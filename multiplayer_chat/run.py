@@ -1,3 +1,4 @@
+import json
 import asyncio
 from multiplayer_chat.schemas import InputSchema
 from naptha_sdk.task import Task
@@ -11,14 +12,19 @@ logger = get_logger(__name__)
 async def run(inputs: InputSchema, worker_nodes, orchestrator_node, flow_run, cfg: Dict):
 
     # workflow = Workflow("Multiplayer Chat", job)
-
+    workflow_result = []
     task1 = Task(name="chat_initiator", fn="chat", worker_node=worker_nodes[0], orchestrator_node=orchestrator_node, task_run=flow_run)
     task2 = Task(name="chat_receiver", fn="chat", worker_node=worker_nodes[1], orchestrator_node=orchestrator_node, task_run=flow_run)
 
     response1 = await task1(prompt=inputs.prompt)
+    workflow_result.append(response1)
     logger.info(f"Response 1: {response1}")
     response2 = await task2(prompt=response1)
+    workflow_result.append(response2)
     logger.info(f"Response 2: {response2}")
+    flow_run["status"] = "completed"
+    flow_run["result"] = {"results": json.dumps(workflow_result)}
+    orchestrator_node.update_task_run(flow_run)
 
     return response2
 
