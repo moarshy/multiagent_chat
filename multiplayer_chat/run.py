@@ -11,19 +11,16 @@ logger = get_logger(__name__)
 async def run(inputs: InputSchema, worker_nodes, orchestrator_node, flow_run, cfg: Dict):
 
     # workflow = Workflow("Multiplayer Chat", job)
-    workflow_result = []
-    task1 = Task(name="chat_initiator", fn="chat", worker_node=worker_nodes[0], orchestrator_node=orchestrator_node, task_run=flow_run)
-    task2 = Task(name="chat_receiver", fn="chat", worker_node=worker_nodes[1], orchestrator_node=orchestrator_node, task_run=flow_run)
+    task1 = Task(name="chat_initiator", fn="chat", worker_node=worker_nodes[0], orchestrator_node=orchestrator_node, flow_run=flow_run)
+    task2 = Task(name="chat_receiver", fn="chat", worker_node=worker_nodes[1], orchestrator_node=orchestrator_node, flow_run=flow_run)
 
     response1 = await task1(prompt=inputs.prompt)
-    workflow_result.append(response1)
     logger.info(f"Response 1: {response1}")
 
     response2 = await task2(prompt=response1)
-    workflow_result.append(response2)
     logger.info(f"Response 2: {response2}")
 
-    return workflow_result
+    return response2
 
 if __name__ == "__main__":
     cfg_path = "multiplayer_chat/component.yaml"
