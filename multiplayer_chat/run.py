@@ -4,6 +4,9 @@ from naptha_sdk.task import Task
 from naptha_sdk.client.node import Node
 from typing import Dict
 import yaml
+from multiplayer_chat.utils import get_logger
+
+logger = get_logger(__name__)
 
 async def run(inputs: InputSchema, worker_nodes, orchestrator_node, flow_run, cfg: Dict):
 
@@ -13,7 +16,9 @@ async def run(inputs: InputSchema, worker_nodes, orchestrator_node, flow_run, cf
     task2 = Task(name="chat_receiver", fn="chat", worker_node=worker_nodes[1], orchestrator_node=orchestrator_node, task_run=flow_run)
 
     response1 = await task1(prompt=inputs.prompt)
+    logger.info(f"Response 1: {response1}")
     response2 = await task2(prompt=response1)
+    logger.info(f"Response 2: {response2}")
 
     return response2
 
