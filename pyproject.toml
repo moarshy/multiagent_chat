@@ -7,7 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
-naptha-sdk = {path = "../../naptha-sdk", develop = true}
+naptha-sdk = {git = "https://github.com/NapthaAI/naptha-sdk.git", branch = "feat/workflow-state"}
 
 [build-system]
 requires = ["poetry-core"]
