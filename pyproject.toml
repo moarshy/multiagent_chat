@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "multiplayer-chat"
+name = "multiagent-chat"
 version = "0.1.0"
 description = ""
 authors = ["Richard Blythman <richardblythman@gmail.com>"]

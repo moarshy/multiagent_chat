@@ -1,8 +1,7 @@
-name: multiplayer_chat
-type: flow
+name: multiagent_chat
 author: naptha
 version: 0.1.0
-description: A multiplayer chat app.
+description: A multiagent chat network.
 license: MIT
 
 models:
