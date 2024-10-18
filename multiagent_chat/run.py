@@ -1,23 +1,43 @@
 from multiagent_chat.schemas import InputSchema
 from naptha_sdk.task import Task as Agent
-
-from typing import Dict
+import json
+from typing import Dict, List
 from multiagent_chat.utils import get_logger
 
 logger = get_logger(__name__)
 
+def reverse_roles(messages: List[Dict[str, str]]):
+    messages = json.loads(messages)
+    for msg in messages[1:]:  # Skip the system message
+        if msg["role"] == "user":
+            msg["role"] = "assistant"
+        elif msg["role"] == "assistant":
+            msg["role"] = "user"
+    return messages
+
 async def run(inputs: InputSchema, worker_node_urls, *args, **kwargs):
 
-    agent1 = Agent(name="chat_agent_initiator", fn="simple_chat_agent", worker_node_url=worker_node_urls[0], *args, **kwargs)
-    agent2 = Agent(name="chat_agent_receiver", fn="simple_chat_agent", worker_node_url=worker_node_urls[1], *args, **kwargs)
+    name1 = "chat_agent_initiator"
+    name2 = "chat_agent_receiver"
 
-    response = await agent1(prompt=inputs.prompt)
+    print("args: ", args)
+    print("kwargs: ", kwargs)
+    agent1 = Agent(name=name1, fn="simple_chat_agent", worker_node_url=worker_node_urls[0], *args, **kwargs)
+    agent2 = Agent(name=name2, fn="simple_chat_agent", worker_node_url=worker_node_urls[1], *args, **kwargs)
+
+    messages = [
+        {"role": "user", "content": inputs.prompt},
+    ]
+
+    messages = await agent1(messages=messages)
 
     for i in range(10):
-        response = await agent2(prompt=response)
-        response = await agent1(prompt=response)
+        messages = reverse_roles(messages)
+        messages = await agent2(messages=messages)
+        messages = reverse_roles(messages)
+        messages = await agent1(messages=messages)
 
-    return response
+    return messages
 
 if __name__ == "__main__":
     import asyncio
@@ -32,11 +52,10 @@ if __name__ == "__main__":
         
     }
     agent_run = {"consumer_id": "user:18837f9faec9a02744d308f935f1b05e8ff2fc355172e875c24366491625d932f36b34a4fa80bac58db635d5eddc87659c2b3fa700a1775eb4c43da6b0ec270d", 
-                 "agent_name": "multiagent_chat", "agent_run_type": "package", "worker_node_urls": ["http://node.naptha.ai:7001", "http://node1.naptha.ai:7001"]}
+                 "agent_name": "multiagent_chat", "agent_run_type": "package", "worker_nodes": ["http://localhost:7001", "http://localhost:7001"]}
     agent_run = AgentRunInput(**agent_run)
     inputs = InputSchema(**inputs)
     orchestrator_node = Node("http://localhost:7001")
-    worker_node_urls = agent_run.worker_node_urls
-    response = asyncio.run(run(inputs, agent_run.worker_node_urls, orchestrator_node, agent_run, cfg))
+    response = asyncio.run(run(inputs, worker_node_urls=["http://localhost:7001", "http://localhost:7001"], orchestrator_node=orchestrator_node, flow_run=agent_run, cfg=cfg))
     print(response)
     print("Agent Run: ", agent_run)
