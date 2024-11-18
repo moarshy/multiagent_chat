@@ -1,9 +1,10 @@
+import json
 from multiagent_chat.schemas import InputSchema
 from naptha_sdk.agent import Agent
 from naptha_sdk.environment import Environment
-import json
-from typing import Dict, List
+from naptha_sdk.schemas import OrchestratorRunInput
 from multiagent_chat.utils import get_logger
+from typing import Dict, List
 
 logger = get_logger(__name__)
 
@@ -19,25 +20,26 @@ class ChatEnvironment(Environment):
     def __init__(self, db_url: str):
         super().__init__(db_url)
 
-async def run(inputs: InputSchema, worker_node_urls, *args, **kwargs):
+async def run(orchestrator_run: OrchestratorRunInput, *args, **kwargs):
     # Initialize environment with database connection
-    if not kwargs.get("db_url"):
+    db_url = orchestrator_run.environment_deployments[0].environment_node_url
+    if not db_url:
         raise ValueError("db_url is required")
     
-    flow_run = kwargs.get("flow_run")
-    flow_id = flow_run.id
-    env = ChatEnvironment(kwargs.get("db_url"))
+    run_id = orchestrator_run.id
+
+    env = ChatEnvironment(db_url)
     
     messages = [
-        {"role": "user", "content": inputs.prompt},
+        {"role": "user", "content": orchestrator_run.inputs.prompt},
     ]
     
     # Store initial message
-    env.upsert_simulation(flow_id, messages)
+    env.upsert_simulation(run_id, messages)
 
     agents = [
-        Agent(name="chat_agent_initiator", fn="simple_chat_agent", worker_node_url=worker_node_urls[0], *args, **kwargs),
-        Agent(name="chat_agent_receiver", fn="simple_chat_agent", worker_node_url=worker_node_urls[1], *args, **kwargs)
+        Agent(orchestrator_run=orchestrator_run, agent_index=0, *args, **kwargs),
+        Agent(orchestrator_run=orchestrator_run, agent_index=1, *args, **kwargs)
     ]
 
     for round_num in range(10):
@@ -45,14 +47,13 @@ async def run(inputs: InputSchema, worker_node_urls, *args, **kwargs):
             response = await agent.call_agent_func(
                 tool_name="chat", 
                 tool_input_data=messages, 
-                llm_backend="openai"
             )
             messages = json.loads(response.results[-1])
             messages = reverse_roles(messages)
             
             # Update database after each agent interaction
             logger.info(f"Updating database for round {round_num}, agent {agent_num}")
-            env.upsert_simulation(flow_id, messages)
+            env.upsert_simulation(run_id, messages)
             
             messages = json.loads(response.results[-1])
     
@@ -61,48 +62,29 @@ async def run(inputs: InputSchema, worker_node_urls, *args, **kwargs):
 if __name__ == "__main__":
     import asyncio
     from naptha_sdk.client.naptha import Naptha
-    from naptha_sdk.client.node import Node
-    from naptha_sdk.schemas import AgentRunInput
-    import yaml
+    from naptha_sdk.configs import load_agent_deployments, load_environment_deployments,load_llm_configs, load_orchestrator_deployments
+    from naptha_sdk.schemas import OrchestratorRun
     import uuid
 
     naptha = Naptha()
 
-    # Database configuration
-    db_url = "postgresql://username:password@localhost:5432/dbname"
-    
-    # Generate a unique run ID
-    run_id = str(uuid.uuid4())
+    input_params = InputSchema(prompt="lets count up one number at a time. ill start. one.")
+        
+    # Configs
+    llm_configs = load_llm_configs("multiagent_chat/configs/llm_configs.json")
+    agent_deployments = load_agent_deployments("multiagent_chat/configs/agent_deployments.json", load_persona_data=False)
+    orchestrator_deployments = load_orchestrator_deployments("multiagent_chat/configs/orchestrator_deployments.json")
+    environment_deployments = load_environment_deployments("multiagent_chat/configs/environment_deployments.json")
 
-    cfg_path = "multiagent_chat/component.yaml"
-    with open(cfg_path, "r") as file:
-        cfg = yaml.load(file, Loader=yaml.FullLoader)
-    
-    inputs = {
-        "prompt": "lets count up one number at a time. ill start. one.",
-    }
-
-    agent_run = {
-        "consumer_id": naptha.user, 
-        "agent_name": "multiagent_chat", 
-        "agent_run_type": "package", 
-        "worker_nodes": ["http://localhost:7001", "http://localhost:7001"]
-    }
-    agent_run = AgentRunInput(**agent_run)
-
-    inputs = InputSchema(**inputs)
-    orchestrator_node = Node("http://localhost:7001")
-    
-    response = asyncio.run(
-        run(
-            inputs, 
-            worker_node_urls=["http://localhost:7001", "http://localhost:7001"],
-            orchestrator_node=orchestrator_node,
-            flow_run=agent_run,
-            cfg=cfg,
-            db_url=db_url,
-            run_id=run_id
-        )
+    orchestrator_run = OrchestratorRun(
+        inputs=input_params,
+        agent_deployments=agent_deployments,
+        orchestrator_deployment=orchestrator_deployments[0],
+        environment_deployments=environment_deployments,
+        consumer_id=naptha.user.id,
     )
+
+    orchestrator_run.id = str(uuid.uuid4())
+
+    response = asyncio.run(run(orchestrator_run))
     print(response)
-    print(f"Run ID: {run_id}")  # Save this to retrieve the conversation later
