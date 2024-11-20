@@ -1,8 +1,8 @@
 import json
-from multiagent_chat.schemas import InputSchema
 from naptha_sdk.agent import Agent
 from naptha_sdk.environment import Environment
 from naptha_sdk.schemas import OrchestratorRunInput
+from multiagent_chat.schemas import InputSchema
 from multiagent_chat.utils import get_logger
 from typing import Dict, List
 
@@ -62,7 +62,7 @@ async def run(orchestrator_run: OrchestratorRunInput, *args, **kwargs):
 if __name__ == "__main__":
     import asyncio
     from naptha_sdk.client.naptha import Naptha
-    from naptha_sdk.configs import load_agent_deployments, load_environment_deployments,load_llm_configs, load_orchestrator_deployments
+    from naptha_sdk.configs import load_agent_deployments, load_environment_deployments, load_orchestrator_deployments
     from naptha_sdk.schemas import OrchestratorRun
     import uuid
 
@@ -71,7 +71,6 @@ if __name__ == "__main__":
     input_params = InputSchema(prompt="lets count up one number at a time. ill start. one.")
         
     # Configs
-    llm_configs = load_llm_configs("multiagent_chat/configs/llm_configs.json")
     agent_deployments = load_agent_deployments("multiagent_chat/configs/agent_deployments.json", load_persona_data=False)
     orchestrator_deployments = load_orchestrator_deployments("multiagent_chat/configs/orchestrator_deployments.json")
     environment_deployments = load_environment_deployments("multiagent_chat/configs/environment_deployments.json")
