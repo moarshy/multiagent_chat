@@ -1,7 +1,7 @@
 [
     {
         "name": "orchestrator_1",
-        "module": "multiagent_chat",
+        "module":{"name": "multiagent_chat"},
         "orchestrator_node_url": "http://localhost:7001",
         "orchestrator_config": {
             "config_name": "orchestrator_config_1",

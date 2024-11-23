@@ -28,7 +28,7 @@ async def run(orchestrator_run: OrchestratorRunInput, *args, **kwargs):
     
     run_id = orchestrator_run.id
 
-    env = ChatEnvironment(db_url)
+    env = ChatEnvironment(orchestrator_run)
     
     messages = [
         {"role": "user", "content": orchestrator_run.inputs.prompt},
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     input_params = InputSchema(prompt="lets count up one number at a time. ill start. one.")
         
     # Configs
-    agent_deployments = load_agent_deployments("multiagent_chat/configs/agent_deployments.json", load_persona_data=False)
+    agent_deployments = load_agent_deployments("multiagent_chat/configs/agent_deployments.json", load_persona_data=False, load_persona_schema=False)
     orchestrator_deployments = load_orchestrator_deployments("multiagent_chat/configs/orchestrator_deployments.json")
     environment_deployments = load_environment_deployments("multiagent_chat/configs/environment_deployments.json")
 
