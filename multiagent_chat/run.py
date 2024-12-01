@@ -17,17 +17,16 @@ def reverse_roles(messages: List[Dict[str, str]]):
     return messages
 
 class ChatEnvironment(Environment):
-    def __init__(self, db_url: str):
-        super().__init__(db_url)
+    """Chat-specific environment implementation"""
+    pass  # Inherits all functionality from base Environment class
 
 async def run(orchestrator_run: OrchestratorRunInput, *args, **kwargs):
-    # Initialize environment with database connection
-    db_url = orchestrator_run.environment_deployments[0].environment_node_url
-    if not db_url:
-        raise ValueError("db_url is required")
+    if not orchestrator_run.environment_deployments[0].environment_node_url:
+        raise ValueError("environment_node_url is required")
     
     run_id = orchestrator_run.id
 
+    # Initialize environment - no need for create() since __init__ handles table creation
     env = ChatEnvironment(orchestrator_run)
     
     messages = [
@@ -35,7 +34,7 @@ async def run(orchestrator_run: OrchestratorRunInput, *args, **kwargs):
     ]
     
     # Store initial message
-    env.upsert_simulation(run_id, messages)
+    await env.upsert_simulation(run_id, messages)
 
     agents = [
         Agent(orchestrator_run=orchestrator_run, agent_index=0, *args, **kwargs),
@@ -53,7 +52,7 @@ async def run(orchestrator_run: OrchestratorRunInput, *args, **kwargs):
             
             # Update database after each agent interaction
             logger.info(f"Updating database for round {round_num}, agent {agent_num}")
-            env.upsert_simulation(run_id, messages)
+            await env.upsert_simulation(run_id, messages)
             
             messages = json.loads(response.results[-1])
     
