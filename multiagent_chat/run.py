@@ -27,7 +27,7 @@ async def run(orchestrator_run: OrchestratorRunInput, *args, **kwargs):
     run_id = orchestrator_run.id
 
     # Initialize environment - no need for create() since __init__ handles table creation
-    env = ChatEnvironment(orchestrator_run)
+    env = await ChatEnvironment.create(orchestrator_run)
     
     messages = [
         {"role": "user", "content": orchestrator_run.inputs.prompt},
