@@ -20,7 +20,7 @@ Create a copy of the .env file:
 cp .env.example .env
 ```
 
-Choose whether you want to interact with a local Naptha node or a hosted Naptha node. For a local node, set ```NODE_URL=http://localhost:7001``` in the .env file. To use a hosted node, set ```NODE_URL=http://node.naptha.ai:7001``` or ```NODE_URL=http://node1.naptha.ai:7001```. If using OpenAI, make sure to set the ```OPENAI_API_KEY``` environment variable.
+Choose whether you want to interact with a local Naptha node or a hosted Naptha node. For a local node, set ```NODE_URL=http://localhost:7001``` in the .env file. To use a hosted node, set ```NODE_URL=http://node.naptha.ai:7001``` or ```NODE_URL=http://node1.naptha.ai:7001```. If your module calls others modules (e.g. using Agent() or Environment()), you need to set a ```PRIVATE_KEY``` in the .env file (e.g. this can be the same as the ```PRIVATE_KEY``` you use with the Naptha SDK). If using OpenAI, make sure to set the ```OPENAI_API_KEY``` environment variable.
 
 
 ### Install Poetry 
@@ -37,7 +37,7 @@ export PATH="/home/$(whoami)/.local/bin:$PATH"
 Using the Naptha SDK:
 
 ```bash
-naptha run orchestrator:multiagent_chat -p "prompt='i would like to count up to ten, one number at a time. ill start. one.'" --worker_nodes "http://node.naptha.ai:7001,http://node1.naptha.ai:7001" --environment_nodes "postgresql://naptha:naptha@localhost:3002/naptha"
+naptha run orchestrator:multiagent_chat -p "prompt='i would like to count up to ten, one number at a time. ill start. one.'" --worker_nodes "http://node.naptha.ai:7001,http://node1.naptha.ai:7001" --environment_nodes "http://node.naptha.ai:7001"
 ```
 
 ## Making Changes to the Module
@@ -58,6 +58,14 @@ You can install the module using:
 ```bash
 poetry install
 ```
+
+### Making Changes to the Configs
+
+You can make changes to the configs in the ```configs``` folder. For example:
+
+**MODEL**: If you would like to use a different model, you can change the ```llm_config['config_name']``` in the ```agent_deployments.json``` file (the ```config_name``` must match the ```config_name``` in the ```llm_configs.json``` file).
+
+**PERSONA**: If you would like to use a different persona, you can change the ```persona_module['url']``` in the ```agent_deployments.json``` file (the ```url``` must point to a valid Hugging Face dataset).
 
 ### Running the Module Locally
 

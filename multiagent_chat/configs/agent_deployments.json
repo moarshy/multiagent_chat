@@ -5,7 +5,7 @@
         "worker_node_url": "http://localhost:7001",
         "agent_config": {
             "config_name": "agent_config_1",
-            "llm_config": {"config_name": "model_1"},
+            "llm_config": {"config_name": "model_2"},
             "persona_module" : {"url": "https://huggingface.co/datasets/richardblythman/characterfile_richardblythman"},
             "system_prompt": {
                 "role": "You are a helpful AI assistant.",
