@@ -1,6 +1,7 @@
 [
     {
         "name": "environment_1",
+        "module": {"name":"groupchat_environment"},
         "environment_node_url": "http://localhost:7001",
         "environment_config": {
             "config_name": "environment_config_1",
