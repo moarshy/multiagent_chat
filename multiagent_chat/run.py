@@ -25,7 +25,7 @@ async def run(orchestrator_run: OrchestratorRunInput, *args, **kwargs):
     """Run the chat orchestration between two agents."""
     try:
         # Validate environment URL
-        if not orchestrator_run.environment_deployments[0].environment_node_url:
+        if not orchestrator_run.orchestrator_deployment.environment_deployments[0].environment_node_url:
             raise ValueError("environment_node_url is required")
         
         run_id = orchestrator_run.id
