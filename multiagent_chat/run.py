@@ -24,15 +24,16 @@ class ChatEnvironment(Environment):
 async def run(orchestrator_run: OrchestratorRunInput, *args, **kwargs):
     """Run the chat orchestration between two agents."""
     try:
+        environment_deployment = orchestrator_run.orchestrator_deployment.environment_deployments[0]
         # Validate environment URL
-        if not orchestrator_run.orchestrator_deployment.environment_deployments[0].environment_node_url:
+        if not environment_deployment.environment_node_url:
             raise ValueError("environment_node_url is required")
         
         run_id = orchestrator_run.id
 
         # Initialize environment and catch potential initialization errors
         try:
-            env = await ChatEnvironment.create(orchestrator_run)
+            env = ChatEnvironment(environment_deployment)
         except Exception as e:
             logger.error(f"Failed to initialize environment: {e}")
             raise
