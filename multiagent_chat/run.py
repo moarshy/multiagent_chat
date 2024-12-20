@@ -33,7 +33,7 @@ async def run(orchestrator_run: OrchestratorRunInput, *args, **kwargs):
 
         # Initialize environment and catch potential initialization errors
         try:
-            env = ChatEnvironment(environment_deployment)
+            env = await ChatEnvironment.create(environment_deployment)
         except Exception as e:
             logger.error(f"Failed to initialize environment: {e}")
             raise
