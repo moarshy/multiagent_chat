@@ -1,13 +1,12 @@
+import logging
 import json
 from naptha_sdk.agent import Agent
 from naptha_sdk.environment import Environment
 from naptha_sdk.schemas import OrchestratorRunInput
 from multiagent_chat.schemas import InputSchema
-from multiagent_chat.utils import get_logger
 from typing import Dict, List
 
-logger = get_logger(__name__)
-
+logger = logging.getLogger(__name__)
 def reverse_roles(messages: List[Dict[str, str]]):
     """Reverse user and assistant roles in messages."""
     for msg in messages[1:]:  # Skip the system message
