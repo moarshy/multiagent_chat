@@ -23,10 +23,10 @@ class ChatEnvironment(Environment):
 async def run(orchestrator_run: OrchestratorRunInput, *args, **kwargs):
     """Run the chat orchestration between two agents."""
     try:
-        environment_deployment = orchestrator_run.orchestrator_deployment.environment_deployments[0]
+        environment_deployment = orchestrator_run.deployment.environment_deployments[0]
         # Validate environment URL
-        if not environment_deployment.environment_node_url:
-            raise ValueError("environment_node_url is required")
+        if not environment_deployment.node:
+            raise ValueError("environment node is required")
         
         run_id = orchestrator_run.id
 
@@ -118,8 +118,8 @@ if __name__ == "__main__":
         # Create orchestrator run instance
         orchestrator_run = OrchestratorRun(
             inputs=input_params,
+            deployment=orchestrator_deployments[0],
             agent_deployments=agent_deployments,
-            orchestrator_deployment=orchestrator_deployments[0],
             environment_deployments=environment_deployments,
             consumer_id=naptha.user.id,
         )
