@@ -3,7 +3,7 @@
         "name": "orchestrator_1",
         "module":{"name": "multiagent_chat"},
         "node": {"ip": "localhost"},
-        "orchestrator_config": {
+        "config": {
             "config_name": "orchestrator_config_1",
             "max_rounds": 10
         },

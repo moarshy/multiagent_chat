@@ -20,15 +20,15 @@ class ChatEnvironment(Environment):
     """Chat-specific environment implementation"""
     pass
 
-async def run(orchestrator_run: OrchestratorRunInput, *args, **kwargs):
+async def run(module_run: OrchestratorRunInput, *args, **kwargs):
     """Run the chat orchestration between two agents."""
     try:
-        environment_deployment = orchestrator_run.deployment.environment_deployments[0]
+        environment_deployment = module_run.deployment.environment_deployments[0]
         # Validate environment URL
         if not environment_deployment.node:
             raise ValueError("environment node is required")
         
-        run_id = orchestrator_run.id
+        run_id = module_run.id
 
         # Initialize environment and catch potential initialization errors
         try:
@@ -39,7 +39,7 @@ async def run(orchestrator_run: OrchestratorRunInput, *args, **kwargs):
 
         # Initialize message history
         messages = [
-            {"role": "user", "content": orchestrator_run.inputs.prompt},
+            {"role": "user", "content": module_run.inputs.prompt},
         ]
         
         # Store initial message
@@ -51,8 +51,8 @@ async def run(orchestrator_run: OrchestratorRunInput, *args, **kwargs):
 
         # Initialize agents
         agents = [
-            Agent(orchestrator_run=orchestrator_run, agent_index=0, *args, **kwargs),
-            Agent(orchestrator_run=orchestrator_run, agent_index=1, *args, **kwargs)
+            Agent(module_run=module_run, agent_index=0, *args, **kwargs),
+            Agent(module_run=module_run, agent_index=1, *args, **kwargs)
         ]
 
         # Run conversation rounds
@@ -116,17 +116,17 @@ if __name__ == "__main__":
         )
 
         # Create orchestrator run instance
-        orchestrator_run = OrchestratorRun(
+        module_run = OrchestratorRun(
             inputs=input_params,
             deployment=orchestrator_deployments[0],
             agent_deployments=agent_deployments,
             environment_deployments=environment_deployments,
             consumer_id=naptha.user.id,
         )
-        orchestrator_run.id = str(uuid.uuid4())
+        module_run.id = str(uuid.uuid4())
 
         # Run the orchestration
-        response = asyncio.run(run(orchestrator_run))
+        response = asyncio.run(run(module_run))
         print(response)
         
     except Exception as e:
