@@ -4,6 +4,7 @@ from naptha_sdk.agent import Agent
 from naptha_sdk.environment import Environment
 from naptha_sdk.schemas import OrchestratorRunInput
 from multiagent_chat.schemas import InputSchema
+import traceback
 from typing import Dict, List
 
 logger = logging.getLogger(__name__)
@@ -82,6 +83,7 @@ async def run(module_run: OrchestratorRunInput, *args, **kwargs):
                         
                 except Exception as e:
                     logger.error(f"Error in round {round_num} with agent {agent_num}: {e}")
+                    logger.error(f"Full traceback:\n{''.join(traceback.format_tb(e.__traceback__))}")
                     # Continue with next agent/round if one fails
         
         return messages
