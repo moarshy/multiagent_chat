@@ -1,7 +1,7 @@
 import logging
 import json
-from naptha_sdk.agent import Agent
-from naptha_sdk.environment import Environment
+from naptha_sdk.modules.agent import Agent
+from naptha_sdk.modules.environment import Environment
 from naptha_sdk.schemas import OrchestratorRunInput
 from multiagent_chat.schemas import InputSchema
 import traceback
