@@ -1,11 +1,13 @@
 import logging
 import json
 from naptha_sdk.modules.agent import Agent
-from naptha_sdk.modules.environment import Environment
-from naptha_sdk.schemas import OrchestratorRunInput
+from naptha_sdk.modules.kb import KnowledgeBase
+from naptha_sdk.schemas import OrchestratorRunInput, OrchestratorDeployment, KBRunInput
 from multiagent_chat.schemas import InputSchema
 import traceback
 from typing import Dict, List
+import uuid
+
 
 logger = logging.getLogger(__name__)
 def reverse_roles(messages: List[Dict[str, str]]):
@@ -17,48 +19,47 @@ def reverse_roles(messages: List[Dict[str, str]]):
             msg["role"] = "user"
     return messages
 
-class ChatEnvironment(Environment):
-    """Chat-specific environment implementation"""
-    pass
+class MultiAgentChat:
+    """Multi-agent chat orchestrator implementation"""
+    def __init__(self, orchestrator_deployment: OrchestratorDeployment, *args, **kwargs):
+        self.orchestrator_deployment = orchestrator_deployment
+        self.agents = [
+            Agent(module_run=module_run, agent_index=0, *args, **kwargs),
+            Agent(module_run=module_run, agent_index=1, *args, **kwargs)
+        ]
+        self.groupchat_kb = KnowledgeBase(kb_deployment=self.orchestrator_deployment.kb_deployments[0])
 
-async def run(module_run: OrchestratorRunInput, *args, **kwargs):
-    """Run the chat orchestration between two agents."""
-    try:
-        environment_deployment = module_run.deployment.environment_deployments[0]
-        # Validate environment URL
-        if not environment_deployment.node:
-            raise ValueError("environment node is required")
-        
-        run_id = module_run.id
+    async def run_multiagent_chat(self, module_run: OrchestratorRunInput, *args, **kwargs):
 
-        # Initialize environment and catch potential initialization errors
-        try:
-            env = await ChatEnvironment.create(environment_deployment)
-        except Exception as e:
-            logger.error(f"Failed to initialize environment: {e}")
-            raise
+        run_id = str(uuid.uuid4())
+
+        kb_deployment = self.orchestrator_deployment.kb_deployments[0]
+
+        # Create table
+        init_result = await self.groupchat_kb.call_kb_func(KBRunInput(
+            consumer_id=module_run.consumer_id,
+            inputs={"func_name": "init"},
+            deployment=kb_deployment.model_dump(),
+        ))
+
+        logger.info(f"Init result: {init_result}")
 
         # Initialize message history
         messages = [
             {"role": "user", "content": module_run.inputs.prompt},
         ]
-        
-        # Store initial message
-        try:
-            await env.upsert_simulation(run_id, messages)
-        except Exception as e:
-            logger.error(f"Failed to store initial message: {e}")
-            # Continue even if storage fails
 
-        # Initialize agents
-        agents = [
-            Agent(module_run=module_run, agent_index=0, *args, **kwargs),
-            Agent(module_run=module_run, agent_index=1, *args, **kwargs)
-        ]
+        add_data_result = await self.groupchat_kb.call_kb_func(KBRunInput(
+            consumer_id=module_run.consumer_id,
+            inputs={"func_name": "add_data", "func_input_data": {"run_id": run_id, "messages": messages}},
+            deployment=kb_deployment.model_dump(),
+        ))
+
+        logger.info(f"Add data result: {add_data_result}")
 
         # Run conversation rounds
-        for round_num in range(10):
-            for agent_num, agent in enumerate(agents):
+        for round_num in range(self.orchestrator_deployment.config.max_rounds):
+            for agent_num, agent in enumerate(self.agents):
                 try:
                     # Get agent response
                     response = await agent.call_agent_func(
@@ -74,9 +75,13 @@ async def run(module_run: OrchestratorRunInput, *args, **kwargs):
                         # Update database after each agent interaction
                         logger.info(f"Updating database for round {round_num}, agent {agent_num}")
                         try:
-                            await env.upsert_simulation(run_id, messages)
+                            await self.groupchat_kb.call_kb_func(KBRunInput(
+                                consumer_id=module_run.consumer_id,
+                                inputs={"func_name": "add_data", "func_input_data": {"run_id": run_id, "messages": messages}},
+                                deployment=kb_deployment.model_dump(),
+                            ))
                         except Exception as e:
-                            logger.error(f"Failed to update simulation: {e}")
+                            logger.error(f"Failed to update database: {e}")
                             # Continue even if storage fails
                     else:
                         logger.warning(f"No results from agent {agent_num} in round {round_num}")
@@ -88,49 +93,34 @@ async def run(module_run: OrchestratorRunInput, *args, **kwargs):
         
         return messages
 
-    except Exception as e:
-        logger.error(f"Fatal error in run: {e}")
-        raise
+
+async def run(module_run: OrchestratorRunInput, *args, **kwargs):
+    """Run the chat orchestration between two agents."""
+
+    multiagent_chat = MultiAgentChat(module_run.deployment)
+    messages = await multiagent_chat.run_multiagent_chat(module_run)
+
+    return messages
 
 if __name__ == "__main__":
     import asyncio
     from naptha_sdk.client.naptha import Naptha
-    from naptha_sdk.configs import load_agent_deployments, load_environment_deployments, load_orchestrator_deployments
-    from naptha_sdk.schemas import OrchestratorRun
-    import uuid
+    from naptha_sdk.configs import setup_module_deployment
+    import os
 
-    try:
-        naptha = Naptha()
+    naptha = Naptha()
 
-        input_params = InputSchema(prompt="lets count up one number at a time. ill start. one.")
-            
-        # Load configurations
-        agent_deployments = load_agent_deployments(
-            "multiagent_chat/configs/agent_deployments.json", 
-            load_persona_data=False, 
-            load_persona_schema=False
-        )
-        orchestrator_deployments = load_orchestrator_deployments(
-            "multiagent_chat/configs/orchestrator_deployments.json"
-        )
-        environment_deployments = load_environment_deployments(
-            "multiagent_chat/configs/environment_deployments.json"
-        )
+    deployment = asyncio.run(setup_module_deployment("orchestrator", "multiagent_chat/configs/deployment.json", node_url = os.getenv("NODE_URL")))
 
-        # Create orchestrator run instance
-        module_run = OrchestratorRun(
-            inputs=input_params,
-            deployment=orchestrator_deployments[0],
-            agent_deployments=agent_deployments,
-            environment_deployments=environment_deployments,
-            consumer_id=naptha.user.id,
-        )
-        module_run.id = str(uuid.uuid4())
-
-        # Run the orchestration
-        response = asyncio.run(run(module_run))
-        print(response)
+    input_params = InputSchema(prompt="lets count up one number at a time. ill start. one.")
         
-    except Exception as e:
-        logger.error(f"Error in main: {e}")
-        raise
+    module_run = OrchestratorRunInput(
+        inputs=input_params,
+        deployment=deployment,
+        consumer_id=naptha.user.id,
+    )
+
+    # Run the orchestration
+    response = asyncio.run(run(module_run))
+    print(response)
+        
