@@ -2,7 +2,7 @@ import logging
 import json
 from naptha_sdk.modules.agent import Agent
 from naptha_sdk.modules.kb import KnowledgeBase
-from naptha_sdk.schemas import OrchestratorRunInput, OrchestratorDeployment, KBRunInput
+from naptha_sdk.schemas import OrchestratorRunInput, OrchestratorDeployment, KBRunInput, AgentRunInput
 from multiagent_chat.schemas import InputSchema
 import traceback
 from typing import Dict, List
@@ -23,9 +23,10 @@ class MultiAgentChat:
     """Multi-agent chat orchestrator implementation"""
     def __init__(self, orchestrator_deployment: OrchestratorDeployment, *args, **kwargs):
         self.orchestrator_deployment = orchestrator_deployment
+        self.agent_deployments = self.orchestrator_deployment.agent_deployments
         self.agents = [
-            Agent(module_run=module_run, agent_index=0, *args, **kwargs),
-            Agent(module_run=module_run, agent_index=1, *args, **kwargs)
+            Agent(deployment=self.agent_deployments[0], *args, **kwargs),
+            Agent(deployment=self.agent_deployments[1], *args, **kwargs)
         ]
         self.groupchat_kb = KnowledgeBase(kb_deployment=self.orchestrator_deployment.kb_deployments[0])
 
@@ -61,11 +62,15 @@ class MultiAgentChat:
         for round_num in range(self.orchestrator_deployment.config.max_rounds):
             for agent_num, agent in enumerate(self.agents):
                 try:
-                    # Get agent response
-                    response = await agent.call_agent_func(
-                        tool_name="chat", 
-                        tool_input_data=messages
+
+                    agent_run_input = AgentRunInput(
+                        consumer_id=module_run.consumer_id,
+                        inputs={"tool_name": "chat", "tool_input_data": messages},
+                        deployment=self.agent_deployments[agent_num],
                     )
+
+                    # Get agent response
+                    response = await agent.call_agent_func(agent_run_input)
                     
                     # Parse and process messages
                     if response.results:
