@@ -99,9 +99,10 @@ class MultiAgentChat:
         return messages
 
 
-async def run(module_run: OrchestratorRunInput, *args, **kwargs):
+async def run(module_run: Dict, *args, **kwargs):
     """Run the chat orchestration between two agents."""
-
+    module_run = OrchestratorRunInput(**module_run)
+    module_run.inputs = InputSchema(**module_run.inputs)
     multiagent_chat = MultiAgentChat(module_run.deployment)
     messages = await multiagent_chat.run_multiagent_chat(module_run)
 
