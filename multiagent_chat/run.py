@@ -1,8 +1,10 @@
 import logging
 import json
+import os
 from naptha_sdk.modules.agent import Agent
 from naptha_sdk.modules.kb import KnowledgeBase
 from naptha_sdk.schemas import OrchestratorRunInput, OrchestratorDeployment, KBRunInput, AgentRunInput
+from naptha_sdk.user import sign_consumer_id
 from multiagent_chat.schemas import InputSchema
 import traceback
 from typing import Dict, List
@@ -41,6 +43,7 @@ class MultiAgentChat:
             consumer_id=module_run.consumer_id,
             inputs={"func_name": "init"},
             deployment=kb_deployment.model_dump(),
+            signature=sign_consumer_id(module_run.consumer_id, os.getenv("PRIVATE_KEY"))
         ))
 
         logger.info(f"Init result: {init_result}")
@@ -54,6 +57,7 @@ class MultiAgentChat:
             consumer_id=module_run.consumer_id,
             inputs={"func_name": "add_data", "func_input_data": {"run_id": run_id, "messages": messages}},
             deployment=kb_deployment.model_dump(),
+            signature=sign_consumer_id(module_run.consumer_id, os.getenv("PRIVATE_KEY"))
         ))
 
         logger.info(f"Add data result: {add_data_result}")
@@ -67,6 +71,7 @@ class MultiAgentChat:
                         consumer_id=module_run.consumer_id,
                         inputs={"tool_name": "chat", "tool_input_data": messages},
                         deployment=self.agent_deployments[agent_num],
+                        signature=sign_consumer_id(module_run.consumer_id, os.getenv("PRIVATE_KEY"))
                     )
 
                     # Get agent response
@@ -84,6 +89,7 @@ class MultiAgentChat:
                                 consumer_id=module_run.consumer_id,
                                 inputs={"func_name": "add_data", "func_input_data": {"run_id": run_id, "messages": messages}},
                                 deployment=kb_deployment.model_dump(),
+                                signature=sign_consumer_id(module_run.consumer_id, os.getenv("PRIVATE_KEY"))
                             ))
                         except Exception as e:
                             logger.error(f"Failed to update database: {e}")
@@ -112,7 +118,6 @@ if __name__ == "__main__":
     import asyncio
     from naptha_sdk.client.naptha import Naptha
     from naptha_sdk.configs import setup_module_deployment
-    import os
 
     naptha = Naptha()
 
@@ -124,6 +129,7 @@ if __name__ == "__main__":
         "inputs": input_params,
         "deployment": deployment,
         "consumer_id": naptha.user.id,
+        "signature": sign_consumer_id(naptha.user.id, os.getenv("PRIVATE_KEY"))
     }
 
     # Run the orchestration
