@@ -118,13 +118,13 @@ if __name__ == "__main__":
 
     deployment = asyncio.run(setup_module_deployment("orchestrator", "multiagent_chat/configs/deployment.json", node_url = os.getenv("NODE_URL")))
 
-    input_params = InputSchema(prompt="lets count up one number at a time. ill start. one.")
+    input_params = {"prompt": "lets count up one number at a time. ill start. one."}
         
-    module_run = OrchestratorRunInput(
-        inputs=input_params,
-        deployment=deployment,
-        consumer_id=naptha.user.id,
-    )
+    module_run = {
+        "inputs": input_params,
+        "deployment": deployment,
+        "consumer_id": naptha.user.id,
+    }
 
     # Run the orchestration
     response = asyncio.run(run(module_run))
