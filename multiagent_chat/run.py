@@ -87,7 +87,7 @@ class MultiAgentChat:
                         try:
                             await self.groupchat_kb.call_kb_func(KBRunInput(
                                 consumer_id=module_run.consumer_id,
-                                inputs={"func_name": "add_data", "func_input_data": {"run_id": run_id, "messages": messages}},
+                                inputs={"func_name": "add_data", "func_input_data": {"run_id": str(uuid.uuid4()), "messages": messages}},
                                 deployment=kb_deployment.model_dump(),
                                 signature=sign_consumer_id(module_run.consumer_id, os.getenv("PRIVATE_KEY"))
                             ))
