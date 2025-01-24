@@ -42,7 +42,7 @@ class MultiAgentChat:
         init_result = await self.groupchat_kb.call_kb_func(KBRunInput(
             consumer_id=module_run.consumer_id,
             inputs={"func_name": "init"},
-            deployment=kb_deployment.model_dump(),
+            deployment=kb_deployment,
             signature=sign_consumer_id(module_run.consumer_id, os.getenv("PRIVATE_KEY"))
         ))
 
@@ -56,7 +56,7 @@ class MultiAgentChat:
         add_data_result = await self.groupchat_kb.call_kb_func(KBRunInput(
             consumer_id=module_run.consumer_id,
             inputs={"func_name": "add_data", "func_input_data": {"run_id": run_id, "messages": messages}},
-            deployment=kb_deployment.model_dump(),
+            deployment=kb_deployment,
             signature=sign_consumer_id(module_run.consumer_id, os.getenv("PRIVATE_KEY"))
         ))
 
@@ -88,19 +88,17 @@ class MultiAgentChat:
                             await self.groupchat_kb.call_kb_func(KBRunInput(
                                 consumer_id=module_run.consumer_id,
                                 inputs={"func_name": "add_data", "func_input_data": {"run_id": str(uuid.uuid4()), "messages": messages}},
-                                deployment=kb_deployment.model_dump(),
+                                deployment=kb_deployment,
                                 signature=sign_consumer_id(module_run.consumer_id, os.getenv("PRIVATE_KEY"))
                             ))
                         except Exception as e:
                             logger.error(f"Failed to update database: {e}")
-                            # Continue even if storage fails
-                    else:
-                        logger.warning(f"No results from agent {agent_num} in round {round_num}")
+                            raise e
                         
                 except Exception as e:
                     logger.error(f"Error in round {round_num} with agent {agent_num}: {e}")
                     logger.error(f"Full traceback:\n{''.join(traceback.format_tb(e.__traceback__))}")
-                    # Continue with next agent/round if one fails
+                    raise e
         
         return messages
 

@@ -5,7 +5,7 @@
         "node": {"ip": "localhost"},
         "config": {
             "config_name": "orchestrator_config_1",
-            "max_rounds": 10
+            "max_rounds": 5
         },
         "agent_deployments": [
             {"name": "agent_deployment_1"},
