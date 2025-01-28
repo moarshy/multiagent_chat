@@ -12,6 +12,7 @@ import uuid
 
 
 logger = logging.getLogger(__name__)
+
 def reverse_roles(messages: List[Dict[str, str]]):
     """Reverse user and assistant roles in messages."""
     for msg in messages[1:]:  # Skip the system message
@@ -37,6 +38,8 @@ class MultiAgentChat:
         run_id = str(uuid.uuid4())
 
         kb_deployment = self.orchestrator_deployment.kb_deployments[0]
+
+        logger.info(f"Kb deployment: {kb_deployment}")
 
         # Create table
         init_result = await self.groupchat_kb.call_kb_func(KBRunInput(
@@ -74,6 +77,7 @@ class MultiAgentChat:
                         signature=sign_consumer_id(module_run.consumer_id, os.getenv("PRIVATE_KEY"))
                     )
 
+                    logger.info(f"Agent run input: {agent_run_input}")
                     # Get agent response
                     response = await agent.call_agent_func(agent_run_input)
                     
